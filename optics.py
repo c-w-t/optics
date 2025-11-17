@@ -2,21 +2,25 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
-from scipy.linalg import solve_banded, eigh_tridiagonal
+from scipy.linalg import solve_banded
+from sympy import symbols, cos, pi, latex
+import pandas as pd
 
 # ===================== Compact Homebrew Yellow UI =====================
-homebrew_css = """
+st.markdown("""
 <style>
 body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
-h2 { color: #b8860b !important; text-shadow: 1px 1px 1px #fef7d6; margin:0 0 0.1em 0;}
+.stTitle { font-size: 1.6rem !important; font-weight: bold; color: #b8860b; margin-bottom:0.5em;}
 .stNumberInput, .stTextInput { margin-bottom: 0.2em; }
 .stButton>button { background-color: #b8860b; color: white; border: 1px solid #8b6508; border-radius: 6px; padding: 0.4em 0.8em; font-weight: bold; box-shadow: 1px 1px 3px #e8d8a0; margin-top:0.2em;}
 .stButton>button:hover { background-color: #d4a017; border-color: #a07505; }
 .dataframe { border: 2px solid #b8860b !important; background-color: #fffaf0 !important; }
 .stProgress>div>div>div>div { background-color: #b8860b; }
 </style>
-"""
-st.markdown(homebrew_css, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
+# ===================== Page Title =====================
+st.title("Tridiagonal Matrix Solver")
 
 # ===================== Thomas Solver =====================
 @njit
@@ -47,49 +51,54 @@ def solve_tridiagonal_scipy(a, b, c, d):
     x = solve_banded((1,1), ab, d)
     return x
 
-# ===================== Main Page Inputs =====================
-st.markdown("<h2>Tridiagonal System Settings</h2>", unsafe_allow_html=True)
-
+# ===================== Inputs =====================
 n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
-b_diag = st.text_input("Main diagonal b (comma-separated)", value="2,2,2,2,2")
-a_diag = st.text_input("Sub diagonal a (comma-separated)", value="1,1,1,1")
-c_diag = st.text_input("Super diagonal c (comma-separated)", value="1,1,1,1")
+b_val = st.number_input("Main diagonal b", value=2.0)
+c_val = st.number_input("Off-diagonal c (symmetric)", value=1.0)
 d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
-
-solver = st.radio("Choose solver:", ["Thomas", "SciPy"])
-show_eigen = st.checkbox("Compute eigenvalues", value=True)
+compute_eigen = st.checkbox("Show symbolic eigenvalues", value=True)
 
 # ===================== Solve Button =====================
 if st.button("Solve"):
     try:
-        b = np.array([float(x) for x in b_diag.split(",")])
-        a = np.array([float(x) for x in a_diag.split(",")])
-        c = np.array([float(x) for x in c_diag.split(",")])
         d = np.array([float(x) for x in d_rhs.split(",")])
-        if len(b) != n or len(a) != n-1 or len(c) != n-1 or len(d) != n:
-            st.error("Array sizes do not match system size n.")
+        if len(d) != n:
+            st.error("RHS length must match n.")
         else:
-            # Solve system
-            if solver == "Thomas":
-                x_sol = thomas(np.concatenate(([0], a)), b, np.concatenate((c, [0])), d)
-            else:
-                x_sol = solve_tridiagonal_scipy(a, b, c, d)
+            a = np.full(n-1, c_val)
+            b = np.full(n, b_val)
 
-            st.write("Solution x:")
-            st.write(x_sol)
+            # Solve both solvers
+            x_thomas = thomas(np.concatenate(([0], a)), b, np.concatenate((a, [0])), d)
+            x_scipy = solve_tridiagonal_scipy(a, b, a, d)
 
+            # Display solutions in a table
+            st.markdown("**Solutions (Thomas vs SciPy)**")
+            df_solutions = pd.DataFrame({
+                "Index": range(n),
+                "Thomas": x_thomas,
+                "SciPy": x_scipy
+            })
+            st.dataframe(df_solutions.style.format("{:.6f}"))
+
+            # Plot solutions
             fig, ax = plt.subplots(figsize=(6,4))
-            ax.bar(range(n), x_sol)
+            ax.plot(range(n), x_thomas, 'o-', label="Thomas")
+            ax.plot(range(n), x_scipy, 's--', label="SciPy")
             ax.set_xlabel("Index")
             ax.set_ylabel("Value")
-            ax.set_title(f"{solver} Solver Result")
+            ax.set_title("Tridiagonal Solver Comparison")
+            ax.legend()
             st.pyplot(fig)
 
-            # Compute eigenvalues if checkbox selected
-            if show_eigen:
-                eigenvals = eigh_tridiagonal(b, a)  # b=main diag, a=sub diag
-                st.write("Eigenvalues of the tridiagonal matrix:")
-                st.write(np.round(eigenvals[0], 6))  # eigenvals[0] contains eigenvalues
+            # Symbolic eigenvalues for symmetric case
+            if compute_eigen:
+                k = symbols('k', integer=True)
+                eigen_formula = b_val + 2*c_val*cos(pi*k/(n+1))
+                st.markdown("**Eigenvalues (symbolic form):**")
+                formulas = [eigen_formula.subs(k, i) for i in range(1, n+1)]
+                for f in formulas:
+                    st.latex(latex(f))
 
     except Exception as e:
-        st.error(f"Error parsing input: {e}")
+        st.error(f"Error: {e}")
