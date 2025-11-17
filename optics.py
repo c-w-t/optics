@@ -16,7 +16,7 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 .dataframe { border: 2px solid #b8860b !important; background-color: #fffaf0 !important; }
 .stProgress>div>div>div>div { background-color: #b8860b; }
 .custom-title {
-    font-size: 0.8rem !important;
+    font-size: 1.6rem !important;
     font-weight: bold;
     color: #b8860b !important;
     margin-bottom:0.5em;
