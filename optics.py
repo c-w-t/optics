@@ -9,13 +9,14 @@ import pandas as pd
 # ===================== Compact Homebrew Yellow UI =====================
 st.markdown("""
 <style>
-body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
-.stTitle { 
-    font-size: 1rem !important;  /* smaller, compact title */
-    font-weight: bold; 
-    color: #b8860b; 
-    margin-bottom:0.5em;
+h1 {
+    font-size: 0.8rem !important;
+    color: #b8860b !important;
+    font-weight: bold;
+    margin-bottom: 0.5em;
 }
+</style>
+""", unsafe_allow_html=True)
 .stNumberInput, .stTextInput { margin-bottom: 0.2em; }
 .stButton>button { background-color: #b8860b; color: white; border: 1px solid #8b6508; border-radius: 6px; padding: 0.4em 0.8em; font-weight: bold; box-shadow: 1px 1px 3px #e8d8a0; margin-top:0.2em;}
 .stButton>button:hover { background-color: #d4a017; border-color: #a07505; }
@@ -58,7 +59,7 @@ def solve_tridiagonal_scipy(a, b, c, d):
 
 # ===================== Inputs =====================
 n = st.number_input("Matrix size", min_value=2, max_value=20, value=5, step=1)
-b_val = st.number_input("Main diagonal", value=2.0)
+b_val = st.number_input("Main diagonal", value=-2.0)
 c_val = st.number_input("Subdiagonal & Superdiagonal", value=1.0)
 d_rhs = st.text_input("RHS d", value="5,5,5,5,5")
 
