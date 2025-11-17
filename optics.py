@@ -10,7 +10,12 @@ import pandas as pd
 st.markdown("""
 <style>
 body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
-.stTitle { font-size: 1.6rem !important; font-weight: bold; color: #b8860b; margin-bottom:0.5em;}
+.stTitle { 
+    font-size: 0.8rem !important;  /* smaller, compact title */
+    font-weight: bold; 
+    color: #b8860b; 
+    margin-bottom:0.5em;
+}
 .stNumberInput, .stTextInput { margin-bottom: 0.2em; }
 .stButton>button { background-color: #b8860b; color: white; border: 1px solid #8b6508; border-radius: 6px; padding: 0.4em 0.8em; font-weight: bold; box-shadow: 1px 1px 3px #e8d8a0; margin-top:0.2em;}
 .stButton>button:hover { background-color: #d4a017; border-color: #a07505; }
@@ -56,7 +61,6 @@ n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=
 b_val = st.number_input("Main diagonal b", value=2.0)
 c_val = st.number_input("Off-diagonal c (symmetric)", value=1.0)
 d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
-compute_eigen = st.checkbox("Show symbolic eigenvalues", value=True)
 
 # ===================== Solve Button =====================
 if st.button("Solve"):
@@ -73,12 +77,12 @@ if st.button("Solve"):
             x_scipy = solve_tridiagonal_scipy(a, b, a, d)
 
             # Display solutions in a table
-            st.markdown("**Solutions (Thomas vs SciPy)**")
             df_solutions = pd.DataFrame({
                 "Index": range(n),
                 "Thomas": x_thomas,
                 "SciPy": x_scipy
             })
+            st.markdown("**Solutions (Thomas vs SciPy)**")
             st.dataframe(df_solutions.style.format("{:.6f}"))
 
             # Plot solutions
@@ -91,14 +95,13 @@ if st.button("Solve"):
             ax.legend()
             st.pyplot(fig)
 
-            # Symbolic eigenvalues for symmetric case
-            if compute_eigen:
-                k = symbols('k', integer=True)
-                eigen_formula = b_val + 2*c_val*cos(pi*k/(n+1))
-                st.markdown("**Eigenvalues (symbolic form):**")
-                formulas = [eigen_formula.subs(k, i) for i in range(1, n+1)]
-                for f in formulas:
-                    st.latex(latex(f))
+            # Always show symbolic eigenvalues
+            k = symbols('k', integer=True)
+            eigen_formula = b_val + 2*c_val*cos(pi*k/(n+1))
+            st.markdown("**Eigenvalues (symbolic form):**")
+            formulas = [eigen_formula.subs(k, i) for i in range(1, n+1)]
+            for f in formulas:
+                st.latex(latex(f))
 
     except Exception as e:
         st.error(f"Error: {e}")
