@@ -1,7 +1,7 @@
-import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 from numba import njit
+import matplotlib.pyplot as plt
+import streamlit as st
 
 # ===================== Homebrew Yellow UI =====================
 homebrew_css = """
@@ -20,26 +20,7 @@ h1, h2, h3 { color: #b8860b !important; text-shadow: 1px 2px 1px #fef7d6; }
 </style>
 """
 st.markdown(homebrew_css, unsafe_allow_html=True)
-st.title("Optics Simulation Platform")
-
-# ===================== RK4 Solver =====================
-def rk4_step(f, x, y, h):
-    k1 = f(x, y)
-    k2 = f(x + h/2, y + h*k1/2)
-    k3 = f(x + h/2, y + h*k2/2)
-    k4 = f(x + h, y + h*k3)
-    return y + h*(k1 + 2*k2 + 2*k3 + k4)/6
-
-def rk4_solve(f, x0, y0, h, steps):
-    xs = [x0]
-    ys = [y0]
-    x, y = x0, y0
-    for _ in range(steps):
-        y = rk4_step(f, x, y, h)
-        x += h
-        xs.append(x)
-        ys.append(y)
-    return np.array(xs), np.array(ys)
+st.title("Tridiagonal Matrix Solver")
 
 # ===================== Tridiagonal Solver =====================
 @njit
@@ -61,37 +42,14 @@ def thomas(a, b, c, d):
     return x
 
 # ===================== Sidebar Settings =====================
-st.sidebar.header("Simulation Settings")
-
-# --- RK4 Settings ---
-x0 = st.sidebar.number_input("Initial x (x0)", value=0.0)
-y0 = st.sidebar.number_input("Initial y (y0)", value=1.0)
-h = st.sidebar.number_input("Step size h", value=0.1)
-steps = st.sidebar.number_input("Number of steps", value=50)
-
-# --- Tridiagonal Settings ---
-st.sidebar.subheader("Tridiagonal System")
+st.sidebar.header("Tridiagonal System Settings")
 n = st.sidebar.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
 b_diag = st.sidebar.text_input("Main diagonal b (comma-separated)", value="2,2,2,2,2")
 a_diag = st.sidebar.text_input("Sub diagonal a (comma-separated)", value="1,1,1,1")
 c_diag = st.sidebar.text_input("Super diagonal c (comma-separated)", value="1,1,1,1")
 d_rhs = st.sidebar.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
 
-# ===================== RK4 Simulation =====================
-def demo_func(x, y):
-    return -0.5 * y  # simple exponential decay
-
-if st.sidebar.button("RK4"):
-    xs, ys = rk4_solve(demo_func, x0, y0, h, steps)
-    fig, ax = plt.subplots(figsize=(8,4))
-    ax.plot(xs, ys, label="RK4 Solution")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_title("RK4 Simulation Result")
-    ax.legend()
-    st.pyplot(fig)
-
-# ===================== Tridiagonal Simulation =====================
+# ===================== Tridiagonal Solver Button =====================
 if st.sidebar.button("Tridiagonal"):
     try:
         b = np.array([float(x) for x in b_diag.split(",")])
