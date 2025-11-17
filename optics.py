@@ -18,9 +18,8 @@ h1, h2, h3 { color: #b8860b !important; text-shadow: 1px 2px 1px #fef7d6; }
 </style>
 """
 st.markdown(homebrew_css, unsafe_allow_html=True)
-st.title("Tridiagonal Matrix Solver")
 
-# ===================== Tridiagonal Matrix Solver =====================
+# ===================== Tridiagonal Solver =====================
 @njit
 def thomas(a, b, c, d):
     n = len(d)
@@ -43,13 +42,13 @@ def thomas(a, b, c, d):
 st.subheader("Tridiagonal System Settings")
 
 n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
-b_diag = st.text_input("Main diagonal b (comma-separated)", value="-2,-2,-2,-2,-2")
+b_diag = st.text_input("Main diagonal b (comma-separated)", value="2,2,2,2,2")
 a_diag = st.text_input("Sub diagonal a (comma-separated)", value="1,1,1,1")
 c_diag = st.text_input("Super diagonal c (comma-separated)", value="1,1,1,1")
 d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
 
-# ===================== Tridiagonal Matrix Solver Button =====================
-if st.button("Button"):
+# ===================== Tridiagonal Solver Button =====================
+if st.button("Solve"):
     try:
         b = np.array([float(x) for x in b_diag.split(",")])
         a = np.array([float(x) for x in a_diag.split(",")])
