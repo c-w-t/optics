@@ -11,7 +11,7 @@ st.markdown("""
 <style>
 body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
 .stTitle { 
-    font-size: 0.8rem !important;  /* smaller, compact title */
+    font-size: 1rem !important;  /* smaller, compact title */
     font-weight: bold; 
     color: #b8860b; 
     margin-bottom:0.5em;
@@ -25,7 +25,7 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 """, unsafe_allow_html=True)
 
 # ===================== Page Title =====================
-st.title("Tridiagonal Matrix Solver")
+st.title("Tridiagonal Matrix")
 
 # ===================== Thomas Solver =====================
 @njit
@@ -57,10 +57,10 @@ def solve_tridiagonal_scipy(a, b, c, d):
     return x
 
 # ===================== Inputs =====================
-n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
-b_val = st.number_input("Main diagonal b", value=2.0)
-c_val = st.number_input("Off-diagonal c (symmetric)", value=1.0)
-d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
+n = st.number_input("Matrix size", min_value=2, max_value=20, value=5, step=1)
+b_val = st.number_input("Main diagonal", value=2.0)
+c_val = st.number_input("Subdiagonal & Superdiagonal", value=1.0)
+d_rhs = st.text_input("RHS d", value="5,5,5,5,5")
 
 # ===================== Solve Button =====================
 if st.button("Solve"):
