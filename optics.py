@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 from scipy.linalg import solve_banded
-from sympy import symbols, cos, pi, sqrt, N, latex
+import sympy as sp
 import pandas as pd
 
 # ===================== Homebrew Yellow UI =====================
@@ -16,7 +16,7 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 .dataframe { border: 2px solid #b8860b !important; background-color: #fffaf0 !important; }
 .stProgress>div>div>div>div { background-color: #b8860b; }
 .custom-title {
-    font-size: 0.8rem !important;
+    font-size: 1.6rem !important;
     font-weight: bold;
     color: #b8860b !important;
     margin-bottom:0.5em;
@@ -25,9 +25,9 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 """, unsafe_allow_html=True)
 
 # ===================== Page Title =====================
-st.markdown('<p class="custom-title">Tridiagonal Matrix Solver</p>', unsafe_allow_html=True)
+st.markdown('<p class="custom-title">Tridiagonal Matrix</p>', unsafe_allow_html=True)
 
-# ===================== Thomas Solver =====================
+# ===================== Thomas ====================
 @njit
 def thomas(a, b, c, d):
     n = len(d)
@@ -46,7 +46,7 @@ def thomas(a, b, c, d):
         x[i] = dp[i] - cp[i]*x[i+1]
     return x
 
-# ===================== SciPy Solver =====================
+# ===================== SciPy =====================
 def solve_tridiagonal_scipy(a, b, c, d):
     n = len(b)
     ab = np.zeros((3, n))
@@ -57,51 +57,56 @@ def solve_tridiagonal_scipy(a, b, c, d):
     return x
 
 # ===================== Inputs =====================
-n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
-b_val = st.number_input("Main diagonal b", value=2.0)
-c_val = st.number_input("Off-diagonal c (symmetric)", value=1.0)
-d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
+n = st.number_input("Matrix size (n)", min_value=2, max_value=20, value=5, step=1)
+b_vals = st.text_input("Main diagonal", value="2,2,2,2,2")
+a_vals = st.text_input("Subdiagonal", value="1,1,1,1")
+c_vals = st.text_input("Superdiagonal", value="1,1,1,1")
+d_rhs = st.text_input("RHS", value="5,5,5,5,5")
 
 # ===================== Solve Button =====================
 if st.button("Solve"):
     try:
+        b = np.array([float(x) for x in b_vals.split(",")])
+        a = np.array([float(x) for x in a_vals.split(",")])
+        c = np.array([float(x) for x in c_vals.split(",")])
         d = np.array([float(x) for x in d_rhs.split(",")])
-        if len(d) != n:
-            st.error("RHS length must match n.")
+
+        if len(b) != n or len(a) != n-1 or len(c) != n-1 or len(d) != n:
+            st.error("Lengths must match: b=n, d=n, a=n-1, c=n-1.")
         else:
-            a = np.full(n-1, c_val)
-            b = np.full(n, b_val)
+            # Solve
+            x_thomas = thomas(np.concatenate(([0], a)), b, np.concatenate((c, [0])), d)
+            x_scipy = solve_tridiagonal_scipy(a, b, c, d)
 
-            # Thomas and SciPy solutions
-            x_thomas = thomas(np.concatenate(([0], a)), b, np.concatenate((a, [0])), d)
-            x_scipy = solve_tridiagonal_scipy(a, b, a, d)
+            # ===================== Symbolic Eigenvalues =====================
+            A = sp.Matrix(n, n, lambda i,j: 0)
+            for i in range(n):
+                A[i,i] = b[i]
+            for i in range(n-1):
+                A[i+1,i] = a[i]
+                A[i,i+1] = c[i]
 
-            # Symbolic eigenvalues
-            k = symbols('k', integer=True)
-            eigen_cos = b_val + 2*c_val*cos(pi*k/(n+1))
-            eigen_sqrt = b_val + sqrt((2*c_val*cos(pi*k/(n+1)))**2)
-            cos_vals = [eigen_cos.subs(k,i) for i in range(1, n+1)]
-            sqrt_vals = [eigen_sqrt.subs(k,i) for i in range(1, n+1)]
-            cos_numeric = [N(val) for val in cos_vals]
-            sqrt_numeric = [N(val) for val in sqrt_vals]
+            eigenvals_dict = A.eigenvals()
+            eigenvals_list = list(eigenvals_dict.keys())
+            eigen_numeric = [float(val.evalf()) for val in eigenvals_list]
 
-            # Build DataFrame
+            st.markdown("**Symbolic Eigenvalues (exact)**")
+            for idx, val in enumerate(eigenvals_list):
+                st.latex(f"\\lambda_{{{idx+1}}} = {sp.latex(val)}")
+
+            # ===================== DataFrame =====================
             df = pd.DataFrame({
                 "Index": range(n),
                 "Thomas": x_thomas,
                 "SciPy": x_scipy,
-                "Eigen (cos)": cos_vals,
-                "Eigen (sqrt)": sqrt_vals,
-                "Eigen (cos numeric)": cos_numeric,
-                "Eigen (sqrt numeric)": sqrt_numeric
+                "Eigen (numeric)": eigen_numeric
             })
             st.markdown("**Solutions & Eigenvalues Table**")
             st.dataframe(df.style.format("{:.6f}"))
 
-            # Plot numeric eigenvalues and solver solutions
+            # ===================== Plot =====================
             fig, ax = plt.subplots(figsize=(6,4))
-            ax.plot(range(n), cos_numeric, 'o-', label="Eigen (cos numeric)")
-            ax.plot(range(n), sqrt_numeric, 's--', label="Eigen (sqrt numeric)")
+            ax.plot(range(n), eigen_numeric, 'o-', label="Eigenvalues (numeric)")
             ax.plot(range(n), x_thomas, 'd-.', label="Thomas")
             ax.plot(range(n), x_scipy, 'x:', label="SciPy")
             ax.set_xlabel("Index")
