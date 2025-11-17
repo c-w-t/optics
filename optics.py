@@ -9,24 +9,23 @@ import pandas as pd
 # ===================== Compact Homebrew Yellow UI =====================
 st.markdown("""
 <style>
-h1 {
-    font-size: 0.8rem !important;
-    color: #b8860b !important;
-    font-weight: bold;
-    margin-bottom: 0.5em;
-}
-</style>
-""", unsafe_allow_html=True)
+body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
 .stNumberInput, .stTextInput { margin-bottom: 0.2em; }
 .stButton>button { background-color: #b8860b; color: white; border: 1px solid #8b6508; border-radius: 6px; padding: 0.4em 0.8em; font-weight: bold; box-shadow: 1px 1px 3px #e8d8a0; margin-top:0.2em;}
 .stButton>button:hover { background-color: #d4a017; border-color: #a07505; }
 .dataframe { border: 2px solid #b8860b !important; background-color: #fffaf0 !important; }
 .stProgress>div>div>div>div { background-color: #b8860b; }
+.custom-title {
+    font-size: 0.8rem !important;
+    font-weight: bold;
+    color: #b8860b !important;
+    margin-bottom:0.5em;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ===================== Page Title =====================
-st.title("Tridiagonal Matrix")
+st.markdown('<p class="custom-title">Tridiagonal Matrix Solver</p>', unsafe_allow_html=True)
 
 # ===================== Thomas Solver =====================
 @njit
