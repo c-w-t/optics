@@ -1,14 +1,12 @@
-import numpy as np
-from numba import njit
-import matplotlib.pyplot as plt
 import streamlit as st
+import numpy as np
+import matplotlib.pyplot as plt
+from numba import njit
 
 # ===================== Homebrew Yellow UI =====================
 homebrew_css = """
 <style>
 body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
-.sidebar .sidebar-content { background-color: #fff8b0; border-right: 3px solid #b8860b; }
-.sidebar .sidebar-content h1, h2, h3 { color: #b8860b !important; }
 h1, h2, h3 { color: #b8860b !important; text-shadow: 1px 2px 1px #fef7d6; }
 .stButton>button { background-color: #b8860b; color: white; border: 1px solid #8b6508; border-radius: 6px; padding: 0.5em 1em; font-weight: bold; box-shadow: 2px 2px 4px #e8d8a0; }
 .stButton>button:hover { background-color: #d4a017; border-color: #a07505; }
@@ -22,7 +20,7 @@ h1, h2, h3 { color: #b8860b !important; text-shadow: 1px 2px 1px #fef7d6; }
 st.markdown(homebrew_css, unsafe_allow_html=True)
 st.title("Tridiagonal Matrix Solver")
 
-# ===================== Tridiagonal Solver =====================
+# ===================== Tridiagonal Matrix Solver =====================
 @njit
 def thomas(a, b, c, d):
     n = len(d)
@@ -41,16 +39,17 @@ def thomas(a, b, c, d):
         x[i] = dp[i] - cp[i]*x[i+1]
     return x
 
-# ===================== Sidebar Settings =====================
-st.sidebar.header("Tridiagonal System Settings")
-n = st.sidebar.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
-b_diag = st.sidebar.text_input("Main diagonal b (comma-separated)", value="2,2,2,2,2")
-a_diag = st.sidebar.text_input("Sub diagonal a (comma-separated)", value="1,1,1,1")
-c_diag = st.sidebar.text_input("Super diagonal c (comma-separated)", value="1,1,1,1")
-d_rhs = st.sidebar.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
+# ===================== Main Page Inputs =====================
+st.subheader("Tridiagonal System Settings")
 
-# ===================== Tridiagonal Solver Button =====================
-if st.sidebar.button("Tridiagonal"):
+n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
+b_diag = st.text_input("Main diagonal b (comma-separated)", value="-2,-2,-2,-2,-2")
+a_diag = st.text_input("Sub diagonal a (comma-separated)", value="1,1,1,1")
+c_diag = st.text_input("Super diagonal c (comma-separated)", value="1,1,1,1")
+d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
+
+# ===================== Tridiagonal Matrix Solver Button =====================
+if st.button("Button"):
     try:
         b = np.array([float(x) for x in b_diag.split(",")])
         a = np.array([float(x) for x in a_diag.split(",")])
