@@ -25,9 +25,9 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 """, unsafe_allow_html=True)
 
 # ===================== Page Title =====================
-st.markdown('<p class="custom-title">Tridiagonal Matrix</p>', unsafe_allow_html=True)
+st.markdown('<p class="custom-title">Tridiagonal Matrix Solver</p>', unsafe_allow_html=True)
 
-# ===================== Thomas ====================
+# ===================== Thomas Solver =====================
 @njit
 def thomas(a, b, c, d):
     n = len(d)
@@ -46,7 +46,7 @@ def thomas(a, b, c, d):
         x[i] = dp[i] - cp[i]*x[i+1]
     return x
 
-# ===================== SciPy =====================
+# ===================== SciPy Solver =====================
 def solve_tridiagonal_scipy(a, b, c, d):
     n = len(b)
     ab = np.zeros((3, n))
@@ -57,8 +57,8 @@ def solve_tridiagonal_scipy(a, b, c, d):
     return x
 
 # ===================== Inputs =====================
-n = st.number_input("Matrix size (n)", min_value=2, max_value=20, value=5, step=1)
-b_vals = st.text_input("Main diagonal", value="2,2,2,2,2")
+n = st.number_input("Matrix size", min_value=2, max_value=20, value=5, step=1)
+b_vals = st.text_input("Main diagonal", value="-2,-2,-2,-2,-2")
 a_vals = st.text_input("Subdiagonal", value="1,1,1,1")
 c_vals = st.text_input("Superdiagonal", value="1,1,1,1")
 d_rhs = st.text_input("RHS", value="5,5,5,5,5")
@@ -66,17 +66,25 @@ d_rhs = st.text_input("RHS", value="5,5,5,5,5")
 # ===================== Solve Button =====================
 if st.button("Solve"):
     try:
-        b = np.array([float(x) for x in b_vals.split(",")])
-        a = np.array([float(x) for x in a_vals.split(",")])
-        c = np.array([float(x) for x in c_vals.split(",")])
+        # Convert inputs to SymPy Rational for exact eigenvalues
+        b = [sp.Rational(x) for x in b_vals.split(",")]
+        a = [sp.Rational(x) for x in a_vals.split(",")]
+        c = [sp.Rational(x) for x in c_vals.split(",")]
+        # RHS remains numeric for solvers
         d = np.array([float(x) for x in d_rhs.split(",")])
 
         if len(b) != n or len(a) != n-1 or len(c) != n-1 or len(d) != n:
             st.error("Lengths must match: b=n, d=n, a=n-1, c=n-1.")
         else:
-            # Solve
-            x_thomas = thomas(np.concatenate(([0], a)), b, np.concatenate((c, [0])), d)
-            x_scipy = solve_tridiagonal_scipy(a, b, c, d)
+            # ===================== Solve Systems =====================
+            x_thomas = thomas(np.concatenate(([0], [float(ai) for ai in a])),
+                              np.array([float(bi) for bi in b]),
+                              np.concatenate(([float(ci) for ci in c], [0])),
+                              d)
+            x_scipy = solve_tridiagonal_scipy([float(ai) for ai in a],
+                                              np.array([float(bi) for bi in b]),
+                                              [float(ci) for ci in c],
+                                              d)
 
             # ===================== Symbolic Eigenvalues =====================
             A = sp.Matrix(n, n, lambda i,j: 0)
@@ -94,7 +102,7 @@ if st.button("Solve"):
             for idx, val in enumerate(eigenvals_list):
                 st.latex(f"\\lambda_{{{idx+1}}} = {sp.latex(val)}")
 
-            # ===================== DataFrame =====================
+            # ===================== Solutions & Eigenvalues Table =====================
             df = pd.DataFrame({
                 "Index": range(n),
                 "Thomas": x_thomas,
@@ -104,16 +112,24 @@ if st.button("Solve"):
             st.markdown("**Solutions & Eigenvalues Table**")
             st.dataframe(df.style.format("{:.6f}"))
 
-            # ===================== Plot =====================
-            fig, ax = plt.subplots(figsize=(6,4))
-            ax.plot(range(n), eigen_numeric, 'o-', label="Eigenvalues (numeric)")
-            ax.plot(range(n), x_thomas, 'd-.', label="Thomas")
-            ax.plot(range(n), x_scipy, 'x:', label="SciPy")
-            ax.set_xlabel("Index")
-            ax.set_ylabel("Value")
-            ax.set_title("Solver & Eigenvalue Comparison")
-            ax.legend()
-            st.pyplot(fig)
+            # ===================== Plot Thomas & SciPy =====================
+            fig1, ax1 = plt.subplots(figsize=(6,4))
+            ax1.plot(range(n), x_thomas, 'd-.', label="Thomas")
+            ax1.plot(range(n), x_scipy, 'x:', label="SciPy")
+            ax1.set_xlabel("Index")
+            ax1.set_ylabel("Value")
+            ax1.set_title("Thomas & SciPy Solver Comparison")
+            ax1.legend()
+            st.pyplot(fig1)
+
+            # ===================== Plot Numeric Eigenvalues =====================
+            fig2, ax2 = plt.subplots(figsize=(6,4))
+            ax2.plot(range(n), eigen_numeric, 'o-', label="Eigenvalues (numeric)")
+            ax2.set_xlabel("Index")
+            ax2.set_ylabel("Value")
+            ax2.set_title("Numeric Eigenvalues from Symbolic")
+            ax2.legend()
+            st.pyplot(fig2)
 
     except Exception as e:
         st.error(f"Error: {e}")
