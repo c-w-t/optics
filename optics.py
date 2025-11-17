@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 from scipy.linalg import solve_banded
-from sympy import symbols, cos, pi, latex
+from sympy import symbols, cos, pi, sqrt, N, latex
 import pandas as pd
 
-# ===================== Compact Homebrew Yellow UI =====================
+# ===================== Homebrew Yellow UI =====================
 st.markdown("""
 <style>
 body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', monospace; }
@@ -16,7 +16,7 @@ body { background-color: #fdf8e2; color: #3a2e2e; font-family: 'Courier New', mo
 .dataframe { border: 2px solid #b8860b !important; background-color: #fffaf0 !important; }
 .stProgress>div>div>div>div { background-color: #b8860b; }
 .custom-title {
-    font-size: 1.6rem !important;
+    font-size: 0.8rem !important;
     font-weight: bold;
     color: #b8860b !important;
     margin-bottom:0.5em;
@@ -57,10 +57,10 @@ def solve_tridiagonal_scipy(a, b, c, d):
     return x
 
 # ===================== Inputs =====================
-n = st.number_input("Matrix size", min_value=2, max_value=20, value=5, step=1)
-b_val = st.number_input("Main diagonal", value=-2.0)
-c_val = st.number_input("Subdiagonal & Superdiagonal", value=1.0)
-d_rhs = st.text_input("RHS d", value="5,5,5,5,5")
+n = st.number_input("System size (n)", min_value=2, max_value=20, value=5, step=1)
+b_val = st.number_input("Main diagonal b", value=2.0)
+c_val = st.number_input("Off-diagonal c (symmetric)", value=1.0)
+d_rhs = st.text_input("RHS d (comma-separated)", value="5,5,5,5,5")
 
 # ===================== Solve Button =====================
 if st.button("Solve"):
@@ -72,36 +72,43 @@ if st.button("Solve"):
             a = np.full(n-1, c_val)
             b = np.full(n, b_val)
 
-            # Solve both solvers
+            # Thomas and SciPy solutions
             x_thomas = thomas(np.concatenate(([0], a)), b, np.concatenate((a, [0])), d)
             x_scipy = solve_tridiagonal_scipy(a, b, a, d)
 
-            # Display solutions in a table
-            df_solutions = pd.DataFrame({
+            # Symbolic eigenvalues
+            k = symbols('k', integer=True)
+            eigen_cos = b_val + 2*c_val*cos(pi*k/(n+1))
+            eigen_sqrt = b_val + sqrt((2*c_val*cos(pi*k/(n+1)))**2)
+            cos_vals = [eigen_cos.subs(k,i) for i in range(1, n+1)]
+            sqrt_vals = [eigen_sqrt.subs(k,i) for i in range(1, n+1)]
+            cos_numeric = [N(val) for val in cos_vals]
+            sqrt_numeric = [N(val) for val in sqrt_vals]
+
+            # Build DataFrame
+            df = pd.DataFrame({
                 "Index": range(n),
                 "Thomas": x_thomas,
-                "SciPy": x_scipy
+                "SciPy": x_scipy,
+                "Eigen (cos)": cos_vals,
+                "Eigen (sqrt)": sqrt_vals,
+                "Eigen (cos numeric)": cos_numeric,
+                "Eigen (sqrt numeric)": sqrt_numeric
             })
-            st.markdown("**Solutions (Thomas vs SciPy)**")
-            st.dataframe(df_solutions.style.format("{:.6f}"))
+            st.markdown("**Solutions & Eigenvalues Table**")
+            st.dataframe(df.style.format("{:.6f}"))
 
-            # Plot solutions
+            # Plot numeric eigenvalues and solver solutions
             fig, ax = plt.subplots(figsize=(6,4))
-            ax.plot(range(n), x_thomas, 'o-', label="Thomas")
-            ax.plot(range(n), x_scipy, 's--', label="SciPy")
+            ax.plot(range(n), cos_numeric, 'o-', label="Eigen (cos numeric)")
+            ax.plot(range(n), sqrt_numeric, 's--', label="Eigen (sqrt numeric)")
+            ax.plot(range(n), x_thomas, 'd-.', label="Thomas")
+            ax.plot(range(n), x_scipy, 'x:', label="SciPy")
             ax.set_xlabel("Index")
             ax.set_ylabel("Value")
-            ax.set_title("Tridiagonal Solver Comparison")
+            ax.set_title("Solver & Eigenvalue Comparison")
             ax.legend()
             st.pyplot(fig)
-
-            # Always show symbolic eigenvalues
-            k = symbols('k', integer=True)
-            eigen_formula = b_val + 2*c_val*cos(pi*k/(n+1))
-            st.markdown("**Eigenvalues (symbolic form):**")
-            formulas = [eigen_formula.subs(k, i) for i in range(1, n+1)]
-            for f in formulas:
-                st.latex(latex(f))
 
     except Exception as e:
         st.error(f"Error: {e}")
