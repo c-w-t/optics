@@ -1,5 +1,4 @@
 matplotlib
-njit
 numba
 scipy
 sympy
